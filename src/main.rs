@@ -1,50 +1,48 @@
-use actix_web::{middleware::Logger, App, HttpResponse, HttpServer, Responder};
-use apistos::{
-    api_operation,
-    app::OpenApiWrapper,
-    info::Info,
-    server::Server,
-    spec::Spec,
-    web::{get, resource, scope},
-};
-// #[get("/")]
-// async fn hello() -> impl Responder {
-//     HttpResponse::Ok().body("Hello world!")
-// }
+use actix_web::{get, middleware::Logger, web::scope, App, HttpResponse, HttpServer, Responder};
+use utoipa_scalar::{Scalar, Servable};
+pub mod hello {
+    use actix_web::{get, HttpResponse, Responder};
 
-// #[post("/echo")]
-// async fn echo(req_body: String) -> impl Responder {
-//     HttpResponse::Ok().body(req_body)
-// }
-
-#[api_operation(summary = "A manual hello world")]
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
+    #[utoipa::path(
+        get,
+        path = "/hey",
+        responses(
+            (status = 200, description = "Pet found successfully", body = Pet),
+            (status = NOT_FOUND, description = "Pet was not found")
+        ),
+        params(
+            ("id" = u64, Path, description = "Pet database id to get Pet for"),
+        )
+    )]
+    #[get("/hey")]
+    async fn manual_hello() -> impl Responder {
+        HttpResponse::Ok().body("Hey there!")
+    }
 }
+use utoipa::OpenApi;
 
+mod openapi {
+    use crate::ApiDoc;
+    use actix_web::{get, HttpResponse, Responder};
+    use utoipa::OpenApi;
+    #[get("")]
+    async fn get_openapi() -> impl Responder {
+        let spec = ApiDoc::openapi().to_json().unwrap();
+
+        HttpResponse::Ok().json(spec)
+    }
+}
+#[derive(OpenApi)]
+#[openapi(paths(hello::manual_hello))]
+struct ApiDoc;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
-        let spec = Spec {
-            info: Info {
-                title: "An API".to_string(),
-                version: "1.0.0".to_string(),
-                ..Default::default()
-            },
-            servers: vec![Server {
-                url: "/api/v3".to_string(),
-
-                ..Default::default()
-            }
-            ],
-            
-            ..Default::default()
-        };
         App::new()
-            .document(spec)
             .wrap(Logger::default())
-            .service(scope("/api").service(resource("").route(get().to(manual_hello))))
-            .build("/openapi.json")
+            .service(scope("/api").service(hello::manual_hello))
+            .service(scope("/openapi").service(openapi::get_openapi))
+            .service(Scalar::with_url("/scalar", ApiDoc::openapi()))
     })
     .bind(("127.0.0.1", 8080))?
     .run()

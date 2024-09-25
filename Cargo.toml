@@ -5,5 +5,5 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4"
-schemars = { package = "apistos-schemars", version = "0.8" }
-apistos = { version = "0.4", feature = ["scalar"] }
+utoipa = { version = "4", features = ["actix_extras"] }
+utoipa-scalar = { version = "0.1", features = ["actix-web"] }
