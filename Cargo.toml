@@ -1,0 +1,9 @@
+[package]
+name = "poc-actix-scalar"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4"
+schemars = { package = "apistos-schemars", version = "0.8" }
+apistos = { version = "0.4", feature = ["scalar"] }
